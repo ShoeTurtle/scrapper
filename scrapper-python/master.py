@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-import os, threading
+import os, threading, time
+import random
+from Queue import Queue
 
 def create_dir(dirname):
 	if not os.path.exists(dirname):
@@ -14,15 +16,25 @@ def log(msg):
 	print msg
 
 def fetch_home_content(url_chunk, i):
+	varying_timer = [2, 5, 1, 6, 3]
 	for url in url_chunk:
-		print url + " -- " + str(i)
+		time.sleep(random.choice(varying_timer))
+		home_finished_queue.put(url)
 		
-	#Maybe insert something in the queue
+def home_print_queue(url_size):
+	finished_count = 0
+	while (True):
+		url = home_finished_queue.get()
+		if (url == 'EXIT'):
+			break
+		finished_count = finished_count + 1
+		log('Completed - [%s/%s] - %s'%(finished_count, url_size, url))
 	
 if(__name__ == "__main__"):
 	MAX_THREAD = 5
+
+	home_finished_queue = Queue(maxsize = 0)
 	
-	home_ongoing_queue = Queue()
 	facebook_ongoing_queue = Queue()
 	linkedin_ongoing_queue = Queue()
 	twitter_ongoing_queue = Queue()
@@ -56,7 +68,11 @@ if(__name__ == "__main__"):
 		chunk_holder[url_count % MAX_THREAD].append(url)
 		url_count = url_count + 1
 		
+	thread_home_print_queue = threading.Thread(target=home_print_queue, args=(len(url_list),))
+	thread_home_print_queue.start()
+	
 	#4. Submit the jobs to the subsequent threads
+	log('Initiating Home Downloads. \n')
 	my_threads = []
 	thread_count = 0
 	for url_chunk in chunk_holder:
@@ -69,5 +85,8 @@ if(__name__ == "__main__"):
 	for thread in my_threads:
 		thread.join()
 		
+	home_finished_queue.put('EXIT')
 	
+	thread_home_print_queue.join()
 	
+	log('\n**HOME SCRAPING COMPLETE**')
