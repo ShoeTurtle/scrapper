@@ -1,4 +1,4 @@
-import os, time, random, threading
+import os, time, random, threading, urllib2
 from Queue import Queue
 from utilities import *
 
@@ -7,9 +7,13 @@ home_finished_queue = Queue(maxsize = 0)
 
 #Extract the home page and write it to the required home folder
 def fetch_home_content(url_chunk, i):
-	varying_timer = [2, 5, 1, 6, 3]
 	for url in url_chunk:
-		time.sleep(random.choice(varying_timer))
+		try:
+			req = urllib2.Request(url, headers={'User-Agent' : 'Magic Browser'})
+			response = urllib2.urlopen(req)
+			write_reponse(response, get_file_name(url), 'home')
+		except Exception, e:
+			log(e)
 		home_finished_queue.put(url)
 
 #Prints the completed task
